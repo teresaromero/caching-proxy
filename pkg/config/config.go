@@ -2,6 +2,8 @@ package config
 
 import (
 	"os"
+	"strconv"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -23,11 +25,11 @@ type Config struct {
 	} `yaml:"cache"`
 }
 
-// ReadConfigYAML reads the configuration from a YAML file specified by the
+// ReadFromConfigYAML reads the configuration from a YAML file specified by the
 // configFile variable, unmarshals it into a Config struct, and returns a
 // pointer to the Config struct. If there is an error reading the file or
 // unmarshalling the YAML, it returns an error.
-func ReadConfigYAML() (*Config, error) {
+func ReadFromConfigYAML() (*Config, error) {
 	b, err := os.ReadFile(configFile)
 	if err != nil {
 		return nil, err
@@ -38,4 +40,32 @@ func ReadConfigYAML() (*Config, error) {
 		return nil, err
 	}
 	return &cfg, nil
+}
+
+// ReadFromEnvironment reads configuration settings from environment variables
+// and returns a Config struct populated with these settings. It looks for the
+// following environment variables:
+// - CACHE_CAPACITY: an integer representing the cache capacity.
+// - CACHE_TTL: a duration string representing the time-to-live for cache entries.
+//
+// If the environment variables are not set or if there is an error parsing their
+// values, it returns an error.
+func ReadFromEnvironment() (*Config, error) {
+	cfg := &Config{}
+	if v, ok := os.LookupEnv("CACHE_CAPACITY"); ok {
+		c, err := strconv.Atoi(v)
+		if err != nil {
+			return nil, err
+		}
+		cfg.Cache.Capacity = c
+	}
+
+	if v, ok := os.LookupEnv("CACHE_TTL"); ok {
+		d, err := time.ParseDuration(v)
+		if err != nil {
+			return nil, err
+		}
+		cfg.Cache.TTL = YAMLDuration(d)
+	}
+	return cfg, nil
 }

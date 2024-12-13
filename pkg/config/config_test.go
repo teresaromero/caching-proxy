@@ -29,7 +29,7 @@ cache:
 	configFile = tempFile.Name()
 
 	// Call the function to test
-	cfg, err := ReadConfigYAML()
+	cfg, err := ReadFromConfigYAML()
 	if err != nil {
 		t.Fatalf("ReadConfigYAML() returned an error: %v", err)
 	}
@@ -48,8 +48,44 @@ func TestReadConfigYAMLError(t *testing.T) {
 	configFile = "non_existent_config.yaml"
 
 	// Call the function to test
-	_, err := ReadConfigYAML()
+	_, err := ReadFromConfigYAML()
 	if err == nil {
 		t.Fatal("Expected an error when reading a non-existent file, but got nil")
 	}
 }
+func TestReadFromEnvironment(t *testing.T) {
+	// Set environment variables for the test
+	os.Setenv("CACHE_CAPACITY", "200")
+	os.Setenv("CACHE_TTL", "120s")
+	defer os.Unsetenv("CACHE_CAPACITY")
+	defer os.Unsetenv("CACHE_TTL")
+
+	// Call the function to test
+	cfg, err := ReadFromEnvironment()
+	if err != nil {
+		t.Fatalf("ReadFromEnvironment() returned an error: %v", err)
+	}
+
+	// Validate the results
+	if cfg.Cache.Capacity != 200 {
+		t.Errorf("Expected Cache.Capacity to be 200, got %d", cfg.Cache.Capacity)
+	}
+	if cfg.Cache.TTL != YAMLDuration(time.Duration(120)*time.Second) {
+		t.Errorf("Expected Cache.TTL to be 120s, got %v", cfg.Cache.TTL)
+	}
+}
+
+func TestReadFromEnvironmentError(t *testing.T) {
+	// Set invalid environment variables for the test
+	os.Setenv("CACHE_CAPACITY", "invalid")
+	os.Setenv("CACHE_TTL", "invalid")
+	defer os.Unsetenv("CACHE_CAPACITY")
+	defer os.Unsetenv("CACHE_TTL")
+
+	// Call the function to test
+	_, err := ReadFromEnvironment()
+	if err == nil {
+		t.Fatal("Expected an error when reading invalid environment variables, but got nil")
+	}
+}
+
