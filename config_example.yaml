@@ -1,0 +1,3 @@
+cache:
+  ttl: 5m
+  capacity: 10
