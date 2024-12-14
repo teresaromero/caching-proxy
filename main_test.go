@@ -57,4 +57,30 @@ func TestMainFunction(t *testing.T) {
 	if resp.Header.Get("Origin-Header") != "ok" {
 		t.Errorf("expected header %q: %q, got %q: %q", "Origin-Header", "ok", "Origin-Header", resp.Header.Get("Origin-Header"))
 	}
+	if resp.Header.Get("X-Cache") != "miss" {
+		t.Errorf("expected header %q: %q, got %q: %q", "X-Cache", "miss", "X-Cache", resp.Header.Get("X-Cache"))
+	}
+
+	// Make a second request to the proxy server
+	resp, err = http.Get("http://localhost:8081/test")
+	if err != nil {
+		t.Fatalf("failed to make request to proxy server: %v", err)
+	}
+	defer resp.Body.Close()
+
+	// Check the response
+	if resp.Header.Get("X-Cache") != "hit" {
+		t.Errorf("expected header %q: %q, got %q: %q", "X-Cache", "miss", "X-Cache", resp.Header.Get("X-Cache"))
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected status %d, got %d", http.StatusOK, resp.StatusCode)
+	}
+	if string(body) != "Hello from origin" {
+		t.Errorf("expected body %q, got %q", "Hello from origin", string(body))
+	}
+	if resp.Header.Get("Origin-Header") != "ok" {
+		t.Errorf("expected header %q: %q, got %q: %q", "Origin-Header", "ok", "Origin-Header", resp.Header.Get("Origin-Header"))
+	}
+
 }
