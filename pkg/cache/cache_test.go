@@ -6,8 +6,13 @@ import (
 	"time"
 )
 
+const (
+	testTTL      = 1 * time.Minute
+	testCapacity = 10
+)
+
 func TestCache_Get(t *testing.T) {
-	cache := New()
+	cache := New(testTTL, testCapacity)
 
 	// Test case 1: Get an item that does not exist
 	_, found := cache.Get("nonexistent")
@@ -50,7 +55,7 @@ func TestCache_Get(t *testing.T) {
 	}
 }
 func TestCache_Set(t *testing.T) {
-	cache := New()
+	cache := New(testTTL, testCapacity)
 
 	// Test case 1: Set an item and retrieve it
 	item := &Item{
@@ -99,7 +104,7 @@ func TestCache_Set(t *testing.T) {
 	}
 }
 func TestCache_RemoveAll(t *testing.T) {
-	cache := New()
+	cache := New(testTTL, testCapacity)
 
 	// Add some items to the cache
 	item1 := &Item{
@@ -143,5 +148,3 @@ func TestCache_RemoveAll(t *testing.T) {
 		t.Errorf("expected itemsList to be empty, got %d items", cache.itemsList.Len())
 	}
 }
-
-

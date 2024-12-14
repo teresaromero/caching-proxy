@@ -2,10 +2,12 @@ package main
 
 import (
 	"caching-proxy/pkg/cache"
+	"caching-proxy/pkg/config"
 	"caching-proxy/pkg/proxy"
 	"flag"
 	"log"
 	"net/http"
+	"time"
 )
 
 func main() {
@@ -17,10 +19,15 @@ func main() {
 		log.Fatal("origin server URL is required")
 	}
 
+	config, err := config.Read()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	proxy := proxy.Proxy{
 		Origin:     *origin,
 		HttpClient: &http.Client{},
-		Cache:      cache.New(),
+		Cache:      cache.New(time.Duration(config.Cache.TTL), config.Cache.Capacity),
 	}
 
 	log.Printf("ListenAndServe on port %s ...", *port)

@@ -29,7 +29,7 @@ cache:
 	configFile = tempFile.Name()
 
 	// Call the function to test
-	cfg, err := ReadFromConfigYAML()
+	cfg, err := readFromConfigYAML()
 	if err != nil {
 		t.Fatalf("ReadConfigYAML() returned an error: %v", err)
 	}
@@ -48,7 +48,7 @@ func TestReadConfigYAMLError(t *testing.T) {
 	configFile = "non_existent_config.yaml"
 
 	// Call the function to test
-	_, err := ReadFromConfigYAML()
+	_, err := readFromConfigYAML()
 	if err == nil {
 		t.Fatal("Expected an error when reading a non-existent file, but got nil")
 	}
@@ -61,7 +61,7 @@ func TestReadFromEnvironment(t *testing.T) {
 	defer os.Unsetenv("CACHE_TTL")
 
 	// Call the function to test
-	cfg, err := ReadFromEnvironment()
+	cfg, err := readFromEnvironment()
 	if err != nil {
 		t.Fatalf("ReadFromEnvironment() returned an error: %v", err)
 	}
@@ -83,9 +83,8 @@ func TestReadFromEnvironmentError(t *testing.T) {
 	defer os.Unsetenv("CACHE_TTL")
 
 	// Call the function to test
-	_, err := ReadFromEnvironment()
+	_, err := readFromEnvironment()
 	if err == nil {
 		t.Fatal("Expected an error when reading invalid environment variables, but got nil")
 	}
 }
-

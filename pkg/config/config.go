@@ -8,6 +8,11 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const (
+	defaultCapacity = 100
+	defaultTTL      = 5 * time.Minute
+)
+
 var (
 	configFile = "config.yaml"
 )
@@ -25,11 +30,11 @@ type Config struct {
 	} `yaml:"cache"`
 }
 
-// ReadFromConfigYAML reads the configuration from a YAML file specified by the
+// readFromConfigYAML reads the configuration from a YAML file specified by the
 // configFile variable, unmarshals it into a Config struct, and returns a
 // pointer to the Config struct. If there is an error reading the file or
 // unmarshalling the YAML, it returns an error.
-func ReadFromConfigYAML() (*Config, error) {
+func readFromConfigYAML() (*Config, error) {
 	b, err := os.ReadFile(configFile)
 	if err != nil {
 		return nil, err
@@ -42,7 +47,7 @@ func ReadFromConfigYAML() (*Config, error) {
 	return &cfg, nil
 }
 
-// ReadFromEnvironment reads configuration settings from environment variables
+// readFromEnvironment reads configuration settings from environment variables
 // and returns a Config struct populated with these settings. It looks for the
 // following environment variables:
 // - CACHE_CAPACITY: an integer representing the cache capacity.
@@ -50,7 +55,7 @@ func ReadFromConfigYAML() (*Config, error) {
 //
 // If the environment variables are not set or if there is an error parsing their
 // values, it returns an error.
-func ReadFromEnvironment() (*Config, error) {
+func readFromEnvironment() (*Config, error) {
 	cfg := &Config{}
 	if v, ok := os.LookupEnv("CACHE_CAPACITY"); ok {
 		c, err := strconv.Atoi(v)
@@ -67,5 +72,51 @@ func ReadFromEnvironment() (*Config, error) {
 		}
 		cfg.Cache.TTL = YAMLDuration(d)
 	}
+	return cfg, nil
+}
+
+// Read reads the configuration for the application from multiple sources.
+// It initializes the configuration with default values, then overrides them
+// with values from a YAML configuration file if available, and finally overrides
+// them with values from environment variables if available.
+//
+// The precedence order for configuration values is:
+// 1. Environment variables
+// 2. YAML configuration file
+// 3. Default values
+//
+// Returns a pointer to the Config struct and an error if any occurred during reading
+// from the YAML configuration file or environment variables.
+func Read() (*Config, error) {
+	cfg := &Config{}
+	cfg.Cache.Capacity = defaultCapacity
+	cfg.Cache.TTL = YAMLDuration(defaultTTL)
+
+	cfgYAML, err := readFromConfigYAML()
+	if err != nil {
+		return nil, err
+	}
+	if cfgYAML != nil {
+		if cfgYAML.Cache.Capacity > 0 {
+			cfg.Cache.Capacity = cfgYAML.Cache.Capacity
+		}
+		if cfgYAML.Cache.TTL > 0 {
+			cfg.Cache.TTL = cfgYAML.Cache.TTL
+		}
+	}
+
+	cfgEnv, err := readFromEnvironment()
+	if err != nil {
+		return nil, err
+	}
+	if cfgEnv != nil {
+		if cfgEnv.Cache.Capacity > 0 {
+			cfg.Cache.Capacity = cfgEnv.Cache.Capacity
+		}
+		if cfgEnv.Cache.TTL > 0 {
+			cfg.Cache.TTL = cfgEnv.Cache.TTL
+		}
+	}
+
 	return cfg, nil
 }

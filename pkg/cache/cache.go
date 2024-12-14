@@ -7,11 +7,6 @@ import (
 	"time"
 )
 
-const (
-	defaultCapacity = 100
-	defaultTTL      = 5 * time.Minute
-)
-
 // Item represents the data stored in the cache.
 type Item struct {
 	ResponseBody       []byte
@@ -30,12 +25,12 @@ type Cache struct {
 }
 
 // New creates a new Cache with the default capacity and TTL.
-func New() *Cache {
+func New(ttl time.Duration, capacity int) *Cache {
 	return &Cache{
 		itemsMap:  make(map[string]*list.Element),
 		itemsList: list.New(),
-		ttl:       defaultTTL,
-		capacity:  defaultCapacity,
+		ttl:       ttl,
+		capacity:  capacity,
 	}
 }
 
