@@ -1,6 +1,8 @@
 package config
 
 import (
+	"errors"
+	"log"
 	"os"
 	"strconv"
 	"time"
@@ -37,6 +39,10 @@ type Config struct {
 func readFromConfigYAML() (*Config, error) {
 	b, err := os.ReadFile(configFile)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			log.Println("config.yaml not found")
+			return nil, nil
+		}
 		return nil, err
 	}
 
