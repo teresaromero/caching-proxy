@@ -1,6 +1,7 @@
 package main
 
 import (
+	"caching-proxy/pkg/cache"
 	"caching-proxy/pkg/proxy"
 	"flag"
 	"log"
@@ -19,6 +20,7 @@ func main() {
 	proxy := proxy.Proxy{
 		Origin:     *origin,
 		HttpClient: &http.Client{},
+		Cache:      cache.New(),
 	}
 
 	log.Printf("ListenAndServe on port %s ...", *port)

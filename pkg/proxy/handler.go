@@ -1,14 +1,21 @@
 package proxy
 
 import (
+	"caching-proxy/pkg/cache"
 	"io"
 	"log"
 	"net/http"
 )
 
+type CacheInterface interface {
+	Get(key string) (*cache.Item, bool)
+	Set(key string, item *cache.Item)
+}
+
 type Proxy struct {
 	Origin     string
 	HttpClient *http.Client
+	Cache      CacheInterface
 }
 
 // Handler returns a http.HandlerFunc that forwards the request to origin server and forwards the response to client
@@ -16,12 +23,32 @@ func (p *Proxy) Handler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Println("incoming new request:", r.Method, r.Host, r.URL.Path)
 
+		cacheKey := r.Method + r.Host + r.URL.Path
+
+		// check cache
+		if item, ok := p.Cache.Get(cacheKey); ok {
+			for k, v := range item.ResponseHeaders {
+				for _, vv := range v {
+					w.Header().Add(k, vv)
+				}
+			}
+			w.Header().Add("X-Cache", "hit")
+			w.WriteHeader(item.ResponseStatusCode)
+			if _, err := w.Write(item.ResponseBody); err != nil {
+				log.Println("error: writing cache response to client", err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			return
+		}
+
 		// request to origin server
 		originURL := p.Origin + r.URL.Path
 		if r.URL.RawQuery != "" {
 			originURL += "?" + r.URL.RawQuery
 		}
 
+		log.Println("forwarding request to origin server:", originURL)
 		req, err := http.NewRequest(r.Method, originURL, io.NopCloser(r.Body))
 		req.Header = r.Header.Clone()
 		if err != nil {
@@ -37,20 +64,32 @@ func (p *Proxy) Handler() http.HandlerFunc {
 		}
 		defer originResponse.Body.Close()
 
+		body, err := io.ReadAll(originResponse.Body)
+		if err != nil {
+			log.Println("error: reading origin response body", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// save into cache
+		p.Cache.Set(cacheKey, &cache.Item{
+			ResponseBody:       body,
+			ResponseHeaders:    originResponse.Header,
+			ResponseStatusCode: originResponse.StatusCode,
+		})
+
 		// response to client
 		for k, v := range originResponse.Header {
 			for _, vv := range v {
 				w.Header().Add(k, vv)
 			}
 		}
+		w.Header().Add("X-Cache", "miss")
 		w.WriteHeader(originResponse.StatusCode)
-		if originResponse.Body != nil {
-			if _, err := io.Copy(w, originResponse.Body); err != nil {
-				log.Println("error: parsing origin response body to response", err)
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-
+		if _, err := w.Write(body); err != nil {
+			log.Println("error: writing origin response to client", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 	}
 }
