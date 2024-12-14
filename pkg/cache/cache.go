@@ -71,6 +71,9 @@ func (c *Cache) Set(key string, item *Item) {
 		c.itemsList.Remove(c.itemsList.Back())
 	}
 
+	// set item expiration with ttl
+	item.Expiration = time.Now().Add(c.ttl)
+
 	element := c.itemsList.PushFront(item)
 	c.itemsMap[key] = element
 }
