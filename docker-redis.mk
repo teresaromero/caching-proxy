@@ -1,12 +1,10 @@
-REDIS_PASSWORD=password
-
 .PHONY: redis-run redis-stop redis-shell redis-clean
 
 redis-run:
 	@echo "Starting Redis container..."
 	@docker run -d \
 		--name redis \
-		-p 127.0.0.1:6379:6379 \
+		-p $(REDIS_ADDR):6379 \
 		-v redis-data:/data \
 		redis:latest \
 		redis-server --requirepass $(REDIS_PASSWORD)

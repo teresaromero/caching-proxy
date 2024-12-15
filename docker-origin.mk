@@ -4,7 +4,7 @@ origin-run:
 	@echo "Starting Origin container..."
 	@docker run -d \
 		--name origin \
-		-p 8080:5678 \
+		-p $(ORIGIN_PORT):5678 \
 		-text="Hello, world!" \
 		hashicorp/http-echo
 
