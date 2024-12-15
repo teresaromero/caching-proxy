@@ -22,15 +22,27 @@ type Cache struct {
 	itemsList *list.List
 	ttl       time.Duration
 	capacity  int
+	redis     *Redis
+}
+
+type CacheConfig struct {
+	TTL      time.Duration
+	Capacity int
+
+	RedisAddr     string
+	RedisDB       int
+	RedisPwd      string
+	RedisUsername string
 }
 
 // New creates a new Cache with the default capacity and TTL.
-func New(ttl time.Duration, capacity int) *Cache {
+func New(config *CacheConfig) *Cache {
 	return &Cache{
 		itemsMap:  make(map[string]*list.Element),
 		itemsList: list.New(),
-		ttl:       ttl,
-		capacity:  capacity,
+		ttl:       config.TTL,
+		capacity:  config.Capacity,
+		redis:     NewRedis(config.RedisDB, config.RedisAddr, config.RedisUsername, config.RedisPwd, config.TTL),
 	}
 }
 

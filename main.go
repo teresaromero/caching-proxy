@@ -24,10 +24,20 @@ func main() {
 		log.Fatal(err)
 	}
 
+	cache := cache.New(
+		&cache.CacheConfig{
+			TTL:           time.Duration(config.Cache.TTL),
+			Capacity:      config.Cache.Capacity,
+			RedisAddr:     config.Cache.Redis.Addr,
+			RedisDB:       config.Cache.Redis.DB,
+			RedisPwd:      config.Cache.Redis.Password,
+			RedisUsername: config.Cache.Redis.Username,
+		})
+
 	proxy := proxy.Proxy{
 		Origin:     *origin,
 		HttpClient: &http.Client{},
-		Cache:      cache.New(time.Duration(config.Cache.TTL), config.Cache.Capacity),
+		Cache:      cache,
 	}
 
 	log.Printf("ListenAndServe on port %s ...", *port)

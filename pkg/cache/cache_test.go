@@ -11,8 +11,15 @@ const (
 	testCapacity = 10
 )
 
+var (
+	testConfig = &CacheConfig{
+		TTL:      testTTL,
+		Capacity: testCapacity,
+	}
+)
+
 func TestCache_Get(t *testing.T) {
-	cache := New(testTTL, testCapacity)
+	cache := New(testConfig)
 
 	// Test case 1: Get an item that does not exist
 	_, found := cache.Get("nonexistent")
@@ -55,7 +62,7 @@ func TestCache_Get(t *testing.T) {
 	}
 }
 func TestCache_Set(t *testing.T) {
-	cache := New(testTTL, testCapacity)
+	cache := New(testConfig)
 
 	// Test case 1: Set an item and retrieve it
 	item := &Item{
@@ -104,7 +111,7 @@ func TestCache_Set(t *testing.T) {
 	}
 }
 func TestCache_RemoveAll(t *testing.T) {
-	cache := New(testTTL, testCapacity)
+	cache := New(testConfig)
 
 	// Add some items to the cache
 	item1 := &Item{
