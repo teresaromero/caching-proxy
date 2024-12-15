@@ -19,6 +19,11 @@ func TestReadConfigYAML(t *testing.T) {
 cache:
   capacity: 100
   ttl: 60s
+  redis:
+    addr: localhost:6379
+    username: "admin"
+    password: "password"
+    db: 0
 `
 	if _, err := tempFile.Write([]byte(testData)); err != nil {
 		t.Fatalf("Failed to write to temp file: %v", err)
@@ -41,6 +46,18 @@ cache:
 	if cfg.Cache.TTL != YAMLDuration(time.Duration(60)*time.Second) {
 		t.Errorf("Expected Cache.TTL to be 60s, got %v", cfg.Cache.TTL)
 	}
+	if cfg.Cache.Redis.Addr != "localhost:6379" {
+		t.Errorf("Expected Cache.Redis.Addr to be localhost:6379, got %s", cfg.Cache.Redis.Addr)
+	}
+	if cfg.Cache.Redis.Username != "admin" {
+		t.Errorf("Expected Cache.Redis.Username to be admin, got %s", cfg.Cache.Redis.Username)
+	}
+	if cfg.Cache.Redis.Password != "password" {
+		t.Errorf("Expected Cache.Redis.Password to be password, got %s", cfg.Cache.Redis.Password)
+	}
+	if cfg.Cache.Redis.DB != 0 {
+		t.Errorf("Expected Cache.Redis.DB to be 0, got %d", cfg.Cache.Redis.DB)
+	}
 }
 
 func TestReadConfigYAMLError(t *testing.T) {
@@ -53,12 +70,21 @@ func TestReadConfigYAMLError(t *testing.T) {
 		t.Fatal("Expected an error when reading a non-existent file, but got nil")
 	}
 }
+
 func TestReadFromEnvironment(t *testing.T) {
 	// Set environment variables for the test
 	os.Setenv("CACHE_CAPACITY", "200")
 	os.Setenv("CACHE_TTL", "120s")
+	os.Setenv("CACHE_REDIS_ADDR", "localhost:6379")
+	os.Setenv("CACHE_REDIS_USERNAME", "admin")
+	os.Setenv("CACHE_REDIS_PASSWORD", "password")
+	os.Setenv("CACHE_REDIS_DB", "1")
 	defer os.Unsetenv("CACHE_CAPACITY")
 	defer os.Unsetenv("CACHE_TTL")
+	defer os.Unsetenv("CACHE_REDIS_ADDR")
+	defer os.Unsetenv("CACHE_REDIS_USERNAME")
+	defer os.Unsetenv("CACHE_REDIS_PASSWORD")
+	defer os.Unsetenv("CACHE_REDIS_DB")
 
 	// Call the function to test
 	cfg, err := readFromEnvironment()
@@ -72,6 +98,18 @@ func TestReadFromEnvironment(t *testing.T) {
 	}
 	if cfg.Cache.TTL != YAMLDuration(time.Duration(120)*time.Second) {
 		t.Errorf("Expected Cache.TTL to be 120s, got %v", cfg.Cache.TTL)
+	}
+	if cfg.Cache.Redis.Addr != "localhost:6379" {
+		t.Errorf("Expected Cache.Redis.Addr to be localhost:6379, got %s", cfg.Cache.Redis.Addr)
+	}
+	if cfg.Cache.Redis.Username != "admin" {
+		t.Errorf("Expected Cache.Redis.Username to be admin, got %s", cfg.Cache.Redis.Username)
+	}
+	if cfg.Cache.Redis.Password != "password" {
+		t.Errorf("Expected Cache.Redis.Password to be password, got %s", cfg.Cache.Redis.Password)
+	}
+	if cfg.Cache.Redis.DB != 1 {
+		t.Errorf("Expected Cache.Redis.DB to be 1, got %d", cfg.Cache.Redis.DB)
 	}
 }
 

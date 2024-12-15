@@ -19,6 +19,13 @@ var (
 	configFile = "config.yaml"
 )
 
+type Redis struct {
+	Addr     string `yaml:"addr"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+	DB       int    `yaml:"db"`
+}
+
 // Config represents the configuration settings for the caching proxy.
 // It contains settings related to the cache, including its capacity and TTL (time-to-live).
 type Config struct {
@@ -29,6 +36,9 @@ type Config struct {
 
 		// TTL specifies the duration for which an item should remain in the cache.
 		TTL YAMLDuration `yaml:"ttl"`
+
+		// Redis holds the Redis-specific configuration settings.
+		Redis Redis `yaml:"redis"`
 	} `yaml:"cache"`
 }
 
@@ -53,14 +63,18 @@ func readFromConfigYAML() (*Config, error) {
 	return &cfg, nil
 }
 
-// readFromEnvironment reads configuration settings from environment variables
-// and returns a Config struct populated with these settings. It looks for the
-// following environment variables:
-// - CACHE_CAPACITY: an integer representing the cache capacity.
-// - CACHE_TTL: a duration string representing the time-to-live for cache entries.
+// readFromEnvironment reads configuration values from environment variables
+// and populates a Config struct with these values. The following environment
+// variables are used:
+// - CACHE_CAPACITY: the capacity of the cache (integer).
+// - CACHE_TTL: the time-to-live duration for cache entries (duration string).
+// - REDIS_ADDR: the address of the Redis server.
+// - REDIS_USERNAME: the username for Redis authentication.
+// - REDIS_PASSWORD: the password for Redis authentication.
+// - REDIS_DB: the Redis database number (integer).
 //
-// If the environment variables are not set or if there is an error parsing their
-// values, it returns an error.
+// Returns a pointer to a Config struct populated with the values from the
+// environment variables, or an error if any of the values cannot be parsed.
 func readFromEnvironment() (*Config, error) {
 	cfg := &Config{}
 	if v, ok := os.LookupEnv("CACHE_CAPACITY"); ok {
@@ -77,6 +91,23 @@ func readFromEnvironment() (*Config, error) {
 			return nil, err
 		}
 		cfg.Cache.TTL = YAMLDuration(d)
+	}
+
+	if v, ok := os.LookupEnv("REDIS_ADDR"); ok {
+		cfg.Cache.Redis.Addr = v
+	}
+	if v, ok := os.LookupEnv("REDIS_USERNAME"); ok {
+		cfg.Cache.Redis.Username = v
+	}
+	if v, ok := os.LookupEnv("REDIS_PASSWORD"); ok {
+		cfg.Cache.Redis.Password = v
+	}
+	if v, ok := os.LookupEnv("REDIS_DB"); ok {
+		db, err := strconv.Atoi(v)
+		if err != nil {
+			return nil, err
+		}
+		cfg.Cache.Redis.DB = db
 	}
 	return cfg, nil
 }
@@ -109,6 +140,18 @@ func Read() (*Config, error) {
 		if cfgYAML.Cache.TTL > 0 {
 			cfg.Cache.TTL = cfgYAML.Cache.TTL
 		}
+		if cfgYAML.Cache.Redis.Addr != "" {
+			cfg.Cache.Redis.Addr = cfgYAML.Cache.Redis.Addr
+		}
+		if cfgYAML.Cache.Redis.Username != "" {
+			cfg.Cache.Redis.Username = cfgYAML.Cache.Redis.Username
+		}
+		if cfgYAML.Cache.Redis.Password != "" {
+			cfg.Cache.Redis.Password = cfgYAML.Cache.Redis.Password
+		}
+		if cfgYAML.Cache.Redis.DB > 0 {
+			cfg.Cache.Redis.DB = cfgYAML.Cache.Redis.DB
+		}
 	}
 
 	cfgEnv, err := readFromEnvironment()
@@ -121,6 +164,18 @@ func Read() (*Config, error) {
 		}
 		if cfgEnv.Cache.TTL > 0 {
 			cfg.Cache.TTL = cfgEnv.Cache.TTL
+		}
+		if cfgEnv.Cache.Redis.Addr != "" {
+			cfg.Cache.Redis.Addr = cfgEnv.Cache.Redis.Addr
+		}
+		if cfgEnv.Cache.Redis.Username != "" {
+			cfg.Cache.Redis.Username = cfgEnv.Cache.Redis.Username
+		}
+		if cfgEnv.Cache.Redis.Password != "" {
+			cfg.Cache.Redis.Password = cfgEnv.Cache.Redis.Password
+		}
+		if cfgEnv.Cache.Redis.DB > 0 {
+			cfg.Cache.Redis.DB = cfgEnv.Cache.Redis.DB
 		}
 	}
 
