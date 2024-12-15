@@ -2,6 +2,8 @@ package cache
 
 import (
 	"container/list"
+	"context"
+	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -46,7 +48,7 @@ func New(config *CacheConfig) *Cache {
 	}
 }
 
-func (c *Cache) Get(key string) (*Item, bool) {
+func (c *Cache) Get(ctx context.Context, key string) (*Item, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
@@ -66,12 +68,41 @@ func (c *Cache) Get(key string) (*Item, bool) {
 		c.itemsList.MoveToFront(element)
 		return item, true
 	}
+
+	// if no redis is configured, return here
+	if c.redis == nil {
+		return nil, false
+	}
+
+	// if the item is not in the cache, check if it is in the redis
+	log.Println("Looking for item in redis...")
+	if item, err := c.redis.Get(ctx, key); err != nil {
+		item, ok := item.(*Item)
+		if !ok {
+			return nil, false
+		}
+
+		// set item in-memory cache to avoid multiple redis calls
+		c.Set(key, item)
+		return item, true
+	}
 	return nil, false
 }
 
 func (c *Cache) Set(key string, item *Item) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	if c.redis != nil {
+		// set item in redis asynchronously
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := c.redis.Set(ctx, key, item); err != nil {
+				log.Println("Error setting item to redis:", err)
+			}
+		}()
+	}
 
 	// implement LRU, if the cache is full, remove the last item
 	if c.itemsList.Len() >= c.capacity {
@@ -85,10 +116,14 @@ func (c *Cache) Set(key string, item *Item) {
 	c.itemsMap[key] = element
 }
 
-func (c *Cache) RemoveAll() {
+func (c *Cache) RemoveAll(ctx context.Context) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	c.itemsMap = make(map[string]*list.Element)
 	c.itemsList.Init()
+
+	if c.redis != nil {
+		c.redis.RemoveAll(ctx)
+	}
 }

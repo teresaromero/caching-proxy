@@ -2,13 +2,14 @@ package proxy
 
 import (
 	"caching-proxy/pkg/cache"
+	"context"
 	"io"
 	"log"
 	"net/http"
 )
 
 type CacheInterface interface {
-	Get(key string) (*cache.Item, bool)
+	Get(ctx context.Context, key string) (*cache.Item, bool)
 	Set(key string, item *cache.Item)
 }
 
@@ -22,11 +23,11 @@ type Proxy struct {
 func (p *Proxy) Handler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Println("incoming new request:", r.Method, r.Host, r.URL.Path)
-
+		ctx := r.Context()
 		cacheKey := r.Method + r.Host + r.URL.Path
 
 		// check cache
-		if item, ok := p.Cache.Get(cacheKey); ok {
+		if item, ok := p.Cache.Get(ctx, cacheKey); ok {
 			for k, v := range item.ResponseHeaders {
 				for _, vv := range v {
 					w.Header().Add(k, vv)

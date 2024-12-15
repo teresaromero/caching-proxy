@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"context"
 	"net/http"
 	"testing"
 	"time"
@@ -19,10 +20,11 @@ var (
 )
 
 func TestCache_Get(t *testing.T) {
+	ctx := context.TODO()
 	cache := New(testConfig)
 
 	// Test case 1: Get an item that does not exist
-	_, found := cache.Get("nonexistent")
+	_, found := cache.Get(ctx, "nonexistent")
 	if found {
 		t.Errorf("expected item to not be found")
 	}
@@ -36,7 +38,7 @@ func TestCache_Get(t *testing.T) {
 	}
 	cache.Set("key1", item)
 
-	retrievedItem, found := cache.Get("key1")
+	retrievedItem, found := cache.Get(ctx, "key1")
 	if !found {
 		t.Errorf("expected item to be found")
 	}
@@ -56,12 +58,13 @@ func TestCache_Get(t *testing.T) {
 	}
 	cache.Set("key2", expiredItem)
 
-	_, found = cache.Get("key2")
+	_, found = cache.Get(ctx, "key2")
 	if found {
 		t.Errorf("expected expired item to not be found")
 	}
 }
 func TestCache_Set(t *testing.T) {
+	ctx := context.TODO()
 	cache := New(testConfig)
 
 	// Test case 1: Set an item and retrieve it
@@ -73,7 +76,7 @@ func TestCache_Set(t *testing.T) {
 	}
 	cache.Set("key1", item)
 
-	retrievedItem, found := cache.Get("key1")
+	retrievedItem, found := cache.Get(ctx, "key1")
 	if !found {
 		t.Errorf("expected item to be found")
 	}
@@ -94,12 +97,12 @@ func TestCache_Set(t *testing.T) {
 	}
 	cache.Set("key2", item2)
 
-	_, found = cache.Get("key1")
+	_, found = cache.Get(ctx, "key1")
 	if found {
 		t.Errorf("expected the first item to be evicted")
 	}
 
-	retrievedItem, found = cache.Get("key2")
+	retrievedItem, found = cache.Get(ctx, "key2")
 	if !found {
 		t.Errorf("expected the new item to be found")
 	}
@@ -111,6 +114,7 @@ func TestCache_Set(t *testing.T) {
 	}
 }
 func TestCache_RemoveAll(t *testing.T) {
+	ctx := context.TODO()
 	cache := New(testConfig)
 
 	// Add some items to the cache
@@ -131,21 +135,21 @@ func TestCache_RemoveAll(t *testing.T) {
 	cache.Set("key2", item2)
 
 	// Ensure items are in the cache
-	if _, found := cache.Get("key1"); !found {
+	if _, found := cache.Get(ctx, "key1"); !found {
 		t.Errorf("expected item1 to be found")
 	}
-	if _, found := cache.Get("key2"); !found {
+	if _, found := cache.Get(ctx, "key2"); !found {
 		t.Errorf("expected item2 to be found")
 	}
 
 	// Remove all items from the cache
-	cache.RemoveAll()
+	cache.RemoveAll(ctx)
 
 	// Ensure cache is empty
-	if _, found := cache.Get("key1"); found {
+	if _, found := cache.Get(ctx, "key1"); found {
 		t.Errorf("expected item1 to be removed")
 	}
-	if _, found := cache.Get("key2"); found {
+	if _, found := cache.Get(ctx, "key2"); found {
 		t.Errorf("expected item2 to be removed")
 	}
 	if len(cache.itemsMap) != 0 {
