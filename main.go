@@ -4,6 +4,7 @@ import (
 	"caching-proxy/pkg/cache"
 	"caching-proxy/pkg/config"
 	"caching-proxy/pkg/proxy"
+	"context"
 	"flag"
 	"log"
 	"net/http"
@@ -13,9 +14,10 @@ import (
 func main() {
 	port := flag.String("port", "8080", "port to listen on")
 	origin := flag.String("origin", "", "origin host")
+	clearCache := flag.Bool("clear-cache", false, "clear cache")
 	flag.Parse()
 
-	if *origin == "" {
+	if *origin == "" && !*clearCache {
 		log.Fatal("origin server URL is required")
 	}
 
@@ -33,6 +35,15 @@ func main() {
 			RedisPwd:      config.Cache.Redis.Password,
 			RedisUsername: config.Cache.Redis.Username,
 		})
+
+	if *clearCache {
+		if err := cache.RemoveAll(context.Background()); err != nil {
+			log.Fatal(err)
+			return
+		}
+		log.Println("Cache cleared")
+		return
+	}
 
 	proxy := proxy.Proxy{
 		Origin:     *origin,

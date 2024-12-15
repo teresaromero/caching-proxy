@@ -116,7 +116,7 @@ func (c *Cache) Set(key string, item *Item) {
 	c.itemsMap[key] = element
 }
 
-func (c *Cache) RemoveAll(ctx context.Context) {
+func (c *Cache) RemoveAll(ctx context.Context) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -124,6 +124,7 @@ func (c *Cache) RemoveAll(ctx context.Context) {
 	c.itemsList.Init()
 
 	if c.redis != nil {
-		c.redis.RemoveAll(ctx)
+		return c.redis.RemoveAll(ctx)
 	}
+	return nil
 }
