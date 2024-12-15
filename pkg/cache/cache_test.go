@@ -31,6 +31,7 @@ func TestCache_Get(t *testing.T) {
 
 	// Test case 2: Get an item that exists and is not expired
 	item := &Item{
+		Key:                "key1",
 		ResponseBody:       []byte("response body"),
 		ResponseHeaders:    http.Header{"Content-Type": []string{"application/json"}},
 		ResponseStatusCode: http.StatusOK,
@@ -51,6 +52,7 @@ func TestCache_Get(t *testing.T) {
 
 	// Test case 3: Get an item that exists but is expired
 	expiredItem := &Item{
+		Key:                "key2",
 		ResponseBody:       []byte("expired response body"),
 		ResponseHeaders:    http.Header{"Content-Type": []string{"application/json"}},
 		ResponseStatusCode: http.StatusOK,
@@ -69,6 +71,7 @@ func TestCache_Set(t *testing.T) {
 
 	// Test case 1: Set an item and retrieve it
 	item := &Item{
+		Key:                "key1",
 		ResponseBody:       []byte("response body"),
 		ResponseHeaders:    http.Header{"Content-Type": []string{"application/json"}},
 		ResponseStatusCode: http.StatusOK,
@@ -90,6 +93,7 @@ func TestCache_Set(t *testing.T) {
 	// Test case 2: Set an item when the cache is full
 	cache.capacity = 1
 	item2 := &Item{
+		Key:                "key2",
 		ResponseBody:       []byte("new response body"),
 		ResponseHeaders:    http.Header{"Content-Type": []string{"application/json"}},
 		ResponseStatusCode: http.StatusOK,
@@ -119,6 +123,7 @@ func TestCache_RemoveAll(t *testing.T) {
 
 	// Add some items to the cache
 	item1 := &Item{
+		Key:                "key1",
 		ResponseBody:       []byte("response body 1"),
 		ResponseHeaders:    http.Header{"Content-Type": []string{"application/json"}},
 		ResponseStatusCode: http.StatusOK,
@@ -127,6 +132,7 @@ func TestCache_RemoveAll(t *testing.T) {
 	cache.Set("key1", item1)
 
 	item2 := &Item{
+		Key:                "key2",
 		ResponseBody:       []byte("response body 2"),
 		ResponseHeaders:    http.Header{"Content-Type": []string{"application/json"}},
 		ResponseStatusCode: http.StatusOK,

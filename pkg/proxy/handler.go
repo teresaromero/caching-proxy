@@ -6,11 +6,13 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"time"
 )
 
 type CacheInterface interface {
 	Get(ctx context.Context, key string) (*cache.Item, bool)
 	Set(key string, item *cache.Item)
+	TTL() time.Duration
 }
 
 type Proxy struct {
@@ -77,6 +79,7 @@ func (p *Proxy) Handler() http.HandlerFunc {
 			ResponseBody:       body,
 			ResponseHeaders:    originResponse.Header,
 			ResponseStatusCode: originResponse.StatusCode,
+			Expiration:         time.Now().Add(p.Cache.TTL()),
 		})
 
 		// response to client

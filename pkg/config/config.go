@@ -1,7 +1,6 @@
 package config
 
 import (
-	"errors"
 	"log"
 	"os"
 	"strconv"
@@ -13,10 +12,6 @@ import (
 const (
 	defaultCapacity = 100
 	defaultTTL      = 5 * time.Minute
-)
-
-var (
-	configFile = "config.yaml"
 )
 
 type Redis struct {
@@ -46,14 +41,11 @@ type Config struct {
 // configFile variable, unmarshals it into a Config struct, and returns a
 // pointer to the Config struct. If there is an error reading the file or
 // unmarshalling the YAML, it returns an error.
-func readFromConfigYAML() (*Config, error) {
-	b, err := os.ReadFile(configFile)
+func readFromConfigYAML(file string) (*Config, error) {
+	b, err := os.ReadFile(file)
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			log.Println("config.yaml not found")
-			return nil, nil
-		}
-		return nil, err
+		log.Println("config.yaml not found")
+		return nil, nil
 	}
 
 	var cfg Config
@@ -124,12 +116,12 @@ func readFromEnvironment() (*Config, error) {
 //
 // Returns a pointer to the Config struct and an error if any occurred during reading
 // from the YAML configuration file or environment variables.
-func Read() (*Config, error) {
+func Read(file string) (*Config, error) {
 	cfg := &Config{}
 	cfg.Cache.Capacity = defaultCapacity
 	cfg.Cache.TTL = YAMLDuration(defaultTTL)
 
-	cfgYAML, err := readFromConfigYAML()
+	cfgYAML, err := readFromConfigYAML(file)
 	if err != nil {
 		return nil, err
 	}

@@ -15,13 +15,14 @@ func main() {
 	port := flag.String("port", "8080", "port to listen on")
 	origin := flag.String("origin", "", "origin host")
 	clearCache := flag.Bool("clear-cache", false, "clear cache")
+	configFile := flag.String("config", "config.yaml", "config file")
 	flag.Parse()
 
 	if *origin == "" && !*clearCache {
 		log.Fatal("origin server URL is required")
 	}
 
-	config, err := config.Read()
+	config, err := config.Read(*configFile)
 	if err != nil {
 		log.Fatal(err)
 	}

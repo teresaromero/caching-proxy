@@ -11,6 +11,7 @@ import (
 
 // Item represents the data stored in the cache.
 type Item struct {
+	Key                string
 	ResponseBody       []byte
 	ResponseHeaders    http.Header
 	ResponseStatusCode int
@@ -93,6 +94,16 @@ func (c *Cache) Set(key string, item *Item) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	// implement LRU, if the cache is full, remove the last item
+	if c.itemsList.Len() >= c.capacity {
+		back := c.itemsList.Back()
+		c.itemsList.Remove(back)
+		delete(c.itemsMap, back.Value.(*Item).Key)
+	}
+
+	element := c.itemsList.PushFront(item)
+	c.itemsMap[key] = element
+
 	if c.redis != nil {
 		// set item in redis asynchronously
 		go func() {
@@ -103,17 +114,6 @@ func (c *Cache) Set(key string, item *Item) {
 			}
 		}()
 	}
-
-	// implement LRU, if the cache is full, remove the last item
-	if c.itemsList.Len() >= c.capacity {
-		c.itemsList.Remove(c.itemsList.Back())
-	}
-
-	// set item expiration with ttl
-	item.Expiration = time.Now().Add(c.ttl)
-
-	element := c.itemsList.PushFront(item)
-	c.itemsMap[key] = element
 }
 
 func (c *Cache) RemoveAll(ctx context.Context) error {
@@ -127,4 +127,8 @@ func (c *Cache) RemoveAll(ctx context.Context) error {
 		return c.redis.RemoveAll(ctx)
 	}
 	return nil
+}
+
+func (c *Cache) TTL() time.Duration {
+	return c.ttl
 }

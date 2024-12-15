@@ -8,7 +8,7 @@ REDIS_PASSWORD=password
 include docker-redis.mk
 include docker-origin.mk
 
-.PHONY: run environment environment-stop environment-clean
+.PHONY: run environment environment-stop environment-clean test
 run:
 	@echo "Running the Go application..."
 	go run main.go --origin=$(ORIGIN_HOST):$(ORIGIN_PORT) --port=$(PORT)
@@ -27,3 +27,7 @@ environment-clean:
 	@echo "Removing redis and origin containers..."
 	@make redis-clean
 	@make origin-clean
+
+test:
+	@echo "Running tests..."
+	go test ./...

@@ -1,12 +1,32 @@
 package proxy
 
 import (
+	"caching-proxy/pkg/cache"
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
+
+type MockCache struct {
+	items map[string]*cache.Item
+}
+
+func (m *MockCache) Get(_ context.Context, key string) (*cache.Item, bool) {
+	item, ok := m.items[key]
+	return item, ok
+}
+
+func (m *MockCache) Set(key string, item *cache.Item) {
+	m.items[key] = item
+}
+
+func (m *MockCache) TTL() time.Duration {
+	return 1 * time.Minute
+}
 
 func TestProxyHandler(t *testing.T) {
 	originServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -44,6 +64,9 @@ func TestProxyHandler(t *testing.T) {
 			proxy := &Proxy{
 				Origin:     originServer.URL,
 				HttpClient: originServer.Client(),
+				Cache: &MockCache{
+					items: make(map[string]*cache.Item),
+				},
 			}
 
 			handler := proxy.Handler()

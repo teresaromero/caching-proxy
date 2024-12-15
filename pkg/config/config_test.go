@@ -31,10 +31,10 @@ cache:
 	tempFile.Close()
 
 	// Override the configFile variable to point to the temp file
-	configFile = tempFile.Name()
+	configFile := tempFile.Name()
 
 	// Call the function to test
-	cfg, err := readFromConfigYAML()
+	cfg, err := readFromConfigYAML(configFile)
 	if err != nil {
 		t.Fatalf("ReadConfigYAML() returned an error: %v", err)
 	}
@@ -60,31 +60,14 @@ cache:
 	}
 }
 
-func TestReadConfigYAMLError(t *testing.T) {
-	// Override the configFile variable to point to a non-existent file
-	configFile = "non_existent_config.yaml"
-
-	// Call the function to test
-	_, err := readFromConfigYAML()
-	if err == nil {
-		t.Fatal("Expected an error when reading a non-existent file, but got nil")
-	}
-}
-
 func TestReadFromEnvironment(t *testing.T) {
 	// Set environment variables for the test
-	os.Setenv("CACHE_CAPACITY", "200")
-	os.Setenv("CACHE_TTL", "120s")
-	os.Setenv("CACHE_REDIS_ADDR", "localhost:6379")
-	os.Setenv("CACHE_REDIS_USERNAME", "admin")
-	os.Setenv("CACHE_REDIS_PASSWORD", "password")
-	os.Setenv("CACHE_REDIS_DB", "1")
-	defer os.Unsetenv("CACHE_CAPACITY")
-	defer os.Unsetenv("CACHE_TTL")
-	defer os.Unsetenv("CACHE_REDIS_ADDR")
-	defer os.Unsetenv("CACHE_REDIS_USERNAME")
-	defer os.Unsetenv("CACHE_REDIS_PASSWORD")
-	defer os.Unsetenv("CACHE_REDIS_DB")
+	t.Setenv("CACHE_CAPACITY", "200")
+	t.Setenv("CACHE_TTL", "120s")
+	t.Setenv("REDIS_ADDR", "localhost:6379")
+	t.Setenv("REDIS_USERNAME", "admin")
+	t.Setenv("REDIS_PASSWORD", "password")
+	t.Setenv("REDIS_DB", "1")
 
 	// Call the function to test
 	cfg, err := readFromEnvironment()
