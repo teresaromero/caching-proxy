@@ -4,25 +4,26 @@ redis-run:
 	@echo "Starting Redis container..."
 	@docker run -d \
 		--name my-redis \
-		-p 6379:6379 \
+		-p 127.0.0.1:6379:6379 \
 		-v redis-data:/data \
-		redis:latest
+		redis:latest \
+		redis-server --requirepass "password"
 
 redis-stop:
 	@echo "Stopping Redis container..."
-	@docker stop $(CONTAINER_NAME) || true
-	@docker rm $(CONTAINER_NAME) || true
+	@docker stop my-redis || true
+	@docker rm my-redis || true
 
 redis-logs:
 	@echo "Tailing logs from Redis container..."
-	@docker logs -f $(CONTAINER_NAME)
+	@docker logs -f my-redis
 
 redis-shell:
 	@echo "Attaching redis-cli to the running Redis container..."
-	@docker exec -it $(CONTAINER_NAME) redis-cli
+	@docker exec -it my-redis redis-cli
 
 redis-clean:
 	@echo "Removing container and volume..."
-	@docker stop $(CONTAINER_NAME) || true
-	@docker rm $(CONTAINER_NAME) || true
-	@docker volume rm $(VOLUME_NAME) || true
+	@docker stop my-redis || true
+	@docker rm my-redis || true
+	@docker volume rm redis-data || true
