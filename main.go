@@ -22,19 +22,18 @@ func main() {
 		log.Fatal("origin server URL is required")
 	}
 
-	config, err := config.Read(*configFile)
-	if err != nil {
-		log.Fatal(err)
-	}
+	cfg := &config.Config{}
+	config.OverrideFromConfigYAML(cfg, *configFile)
+	config.OverrideFromEnvironment(cfg)
 
 	cache := cache.New(
 		&cache.CacheConfig{
-			TTL:           time.Duration(config.Cache.TTL),
-			Capacity:      config.Cache.Capacity,
-			RedisAddr:     config.Cache.Redis.Addr,
-			RedisDB:       config.Cache.Redis.DB,
-			RedisPwd:      config.Cache.Redis.Password,
-			RedisUsername: config.Cache.Redis.Username,
+			TTL:           time.Duration(cfg.Cache.TTL),
+			Capacity:      cfg.Cache.Capacity,
+			RedisAddr:     cfg.Cache.Redis.Addr,
+			RedisDB:       cfg.Cache.Redis.DB,
+			RedisPwd:      cfg.Cache.Redis.Password,
+			RedisUsername: cfg.Cache.Redis.Username,
 		})
 
 	if *clearCache {

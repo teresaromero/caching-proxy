@@ -6,106 +6,256 @@ import (
 	"time"
 )
 
-func TestReadConfigYAML(t *testing.T) {
-	// Create a temporary config file
-	tempFile, err := os.CreateTemp("", "config.yaml")
-	if err != nil {
-		t.Fatalf("Failed to create temp file: %v", err)
-	}
-	defer os.Remove(tempFile.Name())
-
-	// Write test data to the temp file
-	testData := `
+func TestOverrideFromConfigYAML(t *testing.T) {
+	tests := []struct {
+		name     string
+		fileData string
+		expected Config
+	}{
+		{
+			name: "Override all fields",
+			fileData: `
 cache:
-  capacity: 100
-  ttl: 60s
+  capacity: 200
+  ttl: 10m
   redis:
-    addr: localhost:6379
-    username: "admin"
-    password: "password"
+    addr: "localhost:6379"
+    username: "user"
+    password: "pass"
+    db: 1
+`,
+			expected: Config{
+				Cache: struct {
+					Capacity int          `yaml:"capacity"`
+					TTL      YAMLDuration `yaml:"ttl"`
+					Redis    Redis        `yaml:"redis"`
+				}{
+					Capacity: 200,
+					TTL:      YAMLDuration(10 * time.Minute),
+					Redis: Redis{
+						Addr:     "localhost:6379",
+						Username: "user",
+						Password: "pass",
+						DB:       1,
+					},
+				},
+			},
+		},
+		{
+			name: "Override partial fields",
+			fileData: `
+cache:
+  capacity: 150
+  redis:
+    addr: "localhost:6380"
+`,
+			expected: Config{
+				Cache: struct {
+					Capacity int          `yaml:"capacity"`
+					TTL      YAMLDuration `yaml:"ttl"`
+					Redis    Redis        `yaml:"redis"`
+				}{
+					Capacity: 150,
+					TTL:      YAMLDuration(0),
+					Redis: Redis{
+						Addr:     "localhost:6380",
+						Username: "",
+						Password: "",
+						DB:       0,
+					},
+				},
+			},
+		},
+		{
+			name: "No override",
+			fileData: `
+cache:
+  capacity: 0
+  ttl: 0
+  redis:
+    addr: ""
+    username: ""
+    password: ""
     db: 0
-`
-	if _, err := tempFile.Write([]byte(testData)); err != nil {
-		t.Fatalf("Failed to write to temp file: %v", err)
+`,
+			expected: Config{
+				Cache: struct {
+					Capacity int          `yaml:"capacity"`
+					TTL      YAMLDuration `yaml:"ttl"`
+					Redis    Redis        `yaml:"redis"`
+				}{
+					Capacity: 0,
+					TTL:      YAMLDuration(0),
+					Redis: Redis{
+						Addr:     "",
+						Username: "",
+						Password: "",
+						DB:       0,
+					},
+				},
+			},
+		},
 	}
-	tempFile.Close()
 
-	// Override the configFile variable to point to the temp file
-	configFile := tempFile.Name()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			file, err := os.CreateTemp("", "config-*.yaml")
+			if err != nil {
+				t.Fatalf("failed to create temp file: %v", err)
+			}
+			defer os.Remove(file.Name())
 
-	// Call the function to test
-	cfg, err := readFromConfigYAML(configFile)
-	if err != nil {
-		t.Fatalf("ReadConfigYAML() returned an error: %v", err)
-	}
+			if _, err := file.Write([]byte(tt.fileData)); err != nil {
+				t.Fatalf("failed to write to temp file: %v", err)
+			}
+			if err := file.Close(); err != nil {
+				t.Fatalf("failed to close temp file: %v", err)
+			}
 
-	// Validate the results
-	if cfg.Cache.Capacity != 100 {
-		t.Errorf("Expected Cache.Capacity to be 100, got %d", cfg.Cache.Capacity)
-	}
-	if cfg.Cache.TTL != YAMLDuration(time.Duration(60)*time.Second) {
-		t.Errorf("Expected Cache.TTL to be 60s, got %v", cfg.Cache.TTL)
-	}
-	if cfg.Cache.Redis.Addr != "localhost:6379" {
-		t.Errorf("Expected Cache.Redis.Addr to be localhost:6379, got %s", cfg.Cache.Redis.Addr)
-	}
-	if cfg.Cache.Redis.Username != "admin" {
-		t.Errorf("Expected Cache.Redis.Username to be admin, got %s", cfg.Cache.Redis.Username)
-	}
-	if cfg.Cache.Redis.Password != "password" {
-		t.Errorf("Expected Cache.Redis.Password to be password, got %s", cfg.Cache.Redis.Password)
-	}
-	if cfg.Cache.Redis.DB != 0 {
-		t.Errorf("Expected Cache.Redis.DB to be 0, got %d", cfg.Cache.Redis.DB)
+			var cfg Config
+			if err := OverrideFromConfigYAML(&cfg, file.Name()); err != nil {
+				t.Fatalf("OverrideFromConfigYAML() error = %v", err)
+			}
+
+			if cfg.Cache.Capacity != tt.expected.Cache.Capacity {
+				t.Errorf("expected capacity %d, got %d", tt.expected.Cache.Capacity, cfg.Cache.Capacity)
+			}
+			if cfg.Cache.TTL != tt.expected.Cache.TTL {
+				t.Errorf("expected ttl %v, got %v", tt.expected.Cache.TTL, cfg.Cache.TTL)
+			}
+			if cfg.Cache.Redis.Addr != tt.expected.Cache.Redis.Addr {
+				t.Errorf("expected redis addr %s, got %s", tt.expected.Cache.Redis.Addr, cfg.Cache.Redis.Addr)
+			}
+			if cfg.Cache.Redis.Username != tt.expected.Cache.Redis.Username {
+				t.Errorf("expected redis username %s, got %s", tt.expected.Cache.Redis.Username, cfg.Cache.Redis.Username)
+			}
+			if cfg.Cache.Redis.Password != tt.expected.Cache.Redis.Password {
+				t.Errorf("expected redis password %s, got %s", tt.expected.Cache.Redis.Password, cfg.Cache.Redis.Password)
+			}
+			if cfg.Cache.Redis.DB != tt.expected.Cache.Redis.DB {
+				t.Errorf("expected redis db %d, got %d", tt.expected.Cache.Redis.DB, cfg.Cache.Redis.DB)
+			}
+		})
 	}
 }
-
-func TestReadFromEnvironment(t *testing.T) {
-	// Set environment variables for the test
-	t.Setenv("CACHE_CAPACITY", "200")
-	t.Setenv("CACHE_TTL", "120s")
-	t.Setenv("REDIS_ADDR", "localhost:6379")
-	t.Setenv("REDIS_USERNAME", "admin")
-	t.Setenv("REDIS_PASSWORD", "password")
-	t.Setenv("REDIS_DB", "1")
-
-	// Call the function to test
-	cfg, err := readFromEnvironment()
-	if err != nil {
-		t.Fatalf("ReadFromEnvironment() returned an error: %v", err)
+func TestOverrideFromEnvironment(t *testing.T) {
+	tests := []struct {
+		name     string
+		envVars  map[string]string
+		expected Config
+	}{
+		{
+			name: "Override all fields",
+			envVars: map[string]string{
+				"CACHE_CAPACITY": "200",
+				"CACHE_TTL":      "10m",
+				"REDIS_ADDR":     "localhost:6379",
+				"REDIS_USERNAME": "user",
+				"REDIS_PASSWORD": "pass",
+				"REDIS_DB":       "1",
+			},
+			expected: Config{
+				Cache: struct {
+					Capacity int          `yaml:"capacity"`
+					TTL      YAMLDuration `yaml:"ttl"`
+					Redis    Redis        `yaml:"redis"`
+				}{
+					Capacity: 200,
+					TTL:      YAMLDuration(10 * time.Minute),
+					Redis: Redis{
+						Addr:     "localhost:6379",
+						Username: "user",
+						Password: "pass",
+						DB:       1,
+					},
+				},
+			},
+		},
+		{
+			name: "Override partial fields",
+			envVars: map[string]string{
+				"CACHE_CAPACITY": "150",
+				"REDIS_ADDR":     "localhost:6380",
+			},
+			expected: Config{
+				Cache: struct {
+					Capacity int          `yaml:"capacity"`
+					TTL      YAMLDuration `yaml:"ttl"`
+					Redis    Redis        `yaml:"redis"`
+				}{
+					Capacity: 150,
+					TTL:      YAMLDuration(0),
+					Redis: Redis{
+						Addr:     "localhost:6380",
+						Username: "",
+						Password: "",
+						DB:       0,
+					},
+				},
+			},
+		},
+		{
+			name: "No override",
+			envVars: map[string]string{
+				"CACHE_CAPACITY": "0",
+				"CACHE_TTL":      "0",
+				"REDIS_ADDR":     "",
+				"REDIS_USERNAME": "",
+				"REDIS_PASSWORD": "",
+				"REDIS_DB":       "0",
+			},
+			expected: Config{
+				Cache: struct {
+					Capacity int          `yaml:"capacity"`
+					TTL      YAMLDuration `yaml:"ttl"`
+					Redis    Redis        `yaml:"redis"`
+				}{
+					Capacity: 0,
+					TTL:      YAMLDuration(0),
+					Redis: Redis{
+						Addr:     "",
+						Username: "",
+						Password: "",
+						DB:       0,
+					},
+				},
+			},
+		},
 	}
 
-	// Validate the results
-	if cfg.Cache.Capacity != 200 {
-		t.Errorf("Expected Cache.Capacity to be 200, got %d", cfg.Cache.Capacity)
-	}
-	if cfg.Cache.TTL != YAMLDuration(time.Duration(120)*time.Second) {
-		t.Errorf("Expected Cache.TTL to be 120s, got %v", cfg.Cache.TTL)
-	}
-	if cfg.Cache.Redis.Addr != "localhost:6379" {
-		t.Errorf("Expected Cache.Redis.Addr to be localhost:6379, got %s", cfg.Cache.Redis.Addr)
-	}
-	if cfg.Cache.Redis.Username != "admin" {
-		t.Errorf("Expected Cache.Redis.Username to be admin, got %s", cfg.Cache.Redis.Username)
-	}
-	if cfg.Cache.Redis.Password != "password" {
-		t.Errorf("Expected Cache.Redis.Password to be password, got %s", cfg.Cache.Redis.Password)
-	}
-	if cfg.Cache.Redis.DB != 1 {
-		t.Errorf("Expected Cache.Redis.DB to be 1, got %d", cfg.Cache.Redis.DB)
-	}
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for k, v := range tt.envVars {
+				os.Setenv(k, v)
+			}
 
-func TestReadFromEnvironmentError(t *testing.T) {
-	// Set invalid environment variables for the test
-	os.Setenv("CACHE_CAPACITY", "invalid")
-	os.Setenv("CACHE_TTL", "invalid")
-	defer os.Unsetenv("CACHE_CAPACITY")
-	defer os.Unsetenv("CACHE_TTL")
+			var cfg Config
+			if err := OverrideFromEnvironment(&cfg); err != nil {
+				t.Fatalf("OverrideReadFromEnvironment() error = %v", err)
+			}
 
-	// Call the function to test
-	_, err := readFromEnvironment()
-	if err == nil {
-		t.Fatal("Expected an error when reading invalid environment variables, but got nil")
+			if cfg.Cache.Capacity != tt.expected.Cache.Capacity {
+				t.Errorf("expected capacity %d, got %d", tt.expected.Cache.Capacity, cfg.Cache.Capacity)
+			}
+			if cfg.Cache.TTL != tt.expected.Cache.TTL {
+				t.Errorf("expected ttl %v, got %v", tt.expected.Cache.TTL, cfg.Cache.TTL)
+			}
+			if cfg.Cache.Redis.Addr != tt.expected.Cache.Redis.Addr {
+				t.Errorf("expected redis addr %s, got %s", tt.expected.Cache.Redis.Addr, cfg.Cache.Redis.Addr)
+			}
+			if cfg.Cache.Redis.Username != tt.expected.Cache.Redis.Username {
+				t.Errorf("expected redis username %s, got %s", tt.expected.Cache.Redis.Username, cfg.Cache.Redis.Username)
+			}
+			if cfg.Cache.Redis.Password != tt.expected.Cache.Redis.Password {
+				t.Errorf("expected redis password %s, got %s", tt.expected.Cache.Redis.Password, cfg.Cache.Redis.Password)
+			}
+			if cfg.Cache.Redis.DB != tt.expected.Cache.Redis.DB {
+				t.Errorf("expected redis db %d, got %d", tt.expected.Cache.Redis.DB, cfg.Cache.Redis.DB)
+			}
+
+			for k := range tt.envVars {
+				os.Unsetenv(k)
+			}
+		})
 	}
 }

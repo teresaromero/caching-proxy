@@ -37,42 +37,67 @@ type Config struct {
 	} `yaml:"cache"`
 }
 
-// readFromConfigYAML reads the configuration from a YAML file specified by the
-// configFile variable, unmarshals it into a Config struct, and returns a
-// pointer to the Config struct. If there is an error reading the file or
-// unmarshalling the YAML, it returns an error.
-func readFromConfigYAML(file string) (*Config, error) {
+// OverrideFromConfigYAML overrides the provided configuration with values from a YAML file.
+// It reads the YAML file specified by the 'file' parameter and unmarshals its content into a temporary Config struct.
+// If the YAML file contains non-zero values for certain fields, those values will override the corresponding fields in the provided 'cfg' parameter.
+// If the YAML file is not found, it logs a message and returns nil.
+//
+// Parameters:
+//   - cfg: A pointer to the Config struct to be overridden.
+//   - file: The path to the YAML file containing the configuration overrides.
+//
+// Returns:
+//   - error: An error if there is an issue reading the file or unmarshalling its content, otherwise nil.
+func OverrideFromConfigYAML(cfg *Config, file string) error {
 	b, err := os.ReadFile(file)
 	if err != nil {
 		log.Println("config.yaml not found")
-		return nil, nil
+		return nil
 	}
 
-	var cfg Config
+	var fileCfg Config
 	if err = yaml.Unmarshal(b, &cfg); err != nil {
-		return nil, err
+		return err
 	}
-	return &cfg, nil
+
+	if fileCfg.Cache.Capacity != 0 {
+		cfg.Cache.Capacity = fileCfg.Cache.Capacity
+	}
+	if fileCfg.Cache.TTL != 0 {
+		cfg.Cache.TTL = fileCfg.Cache.TTL
+	}
+	if fileCfg.Cache.Redis.Addr != "" {
+		cfg.Cache.Redis.Addr = fileCfg.Cache.Redis.Addr
+	}
+	if fileCfg.Cache.Redis.Username != "" {
+		cfg.Cache.Redis.Username = fileCfg.Cache.Redis.Username
+	}
+	if fileCfg.Cache.Redis.Password != "" {
+		cfg.Cache.Redis.Password = fileCfg.Cache.Redis.Password
+	}
+	if fileCfg.Cache.Redis.DB != 0 {
+		cfg.Cache.Redis.DB = fileCfg.Cache.Redis.DB
+	}
+
+	return nil
 }
 
-// readFromEnvironment reads configuration values from environment variables
-// and populates a Config struct with these values. The following environment
-// variables are used:
-// - CACHE_CAPACITY: the capacity of the cache (integer).
-// - CACHE_TTL: the time-to-live duration for cache entries (duration string).
-// - REDIS_ADDR: the address of the Redis server.
-// - REDIS_USERNAME: the username for Redis authentication.
-// - REDIS_PASSWORD: the password for Redis authentication.
-// - REDIS_DB: the Redis database number (integer).
+// OverrideFromEnvironment overrides the configuration values in the provided
+// Config struct with values from environment variables, if they are set.
+// The following environment variables are checked:
+// - CACHE_CAPACITY: sets the Cache.Capacity field (expects an integer value).
+// - CACHE_TTL: sets the Cache.TTL field (expects a duration string, e.g., "1h").
+// - REDIS_ADDR: sets the Cache.Redis.Addr field (expects a string value).
+// - REDIS_USERNAME: sets the Cache.Redis.Username field (expects a string value).
+// - REDIS_PASSWORD: sets the Cache.Redis.Password field (expects a string value).
+// - REDIS_DB: sets the Cache.Redis.DB field (expects an integer value).
 //
-// Returns a pointer to a Config struct populated with the values from the
-// environment variables, or an error if any of the values cannot be parsed.
-func readFromEnvironment() (*Config, error) {
-	cfg := &Config{}
+// If any of the environment variables contain invalid values, an error is returned.
+func OverrideFromEnvironment(cfg *Config) error {
 	if v, ok := os.LookupEnv("CACHE_CAPACITY"); ok {
 		c, err := strconv.Atoi(v)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		cfg.Cache.Capacity = c
 	}
@@ -80,7 +105,7 @@ func readFromEnvironment() (*Config, error) {
 	if v, ok := os.LookupEnv("CACHE_TTL"); ok {
 		d, err := time.ParseDuration(v)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		cfg.Cache.TTL = YAMLDuration(d)
 	}
@@ -97,79 +122,9 @@ func readFromEnvironment() (*Config, error) {
 	if v, ok := os.LookupEnv("REDIS_DB"); ok {
 		db, err := strconv.Atoi(v)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		cfg.Cache.Redis.DB = db
 	}
-	return cfg, nil
-}
-
-// Read reads the configuration for the application from multiple sources.
-// It initializes the configuration with default values, then overrides them
-// with values from a YAML configuration file if available, and finally overrides
-// them with values from environment variables if available.
-//
-// The precedence order for configuration values is:
-// 1. Environment variables
-// 2. YAML configuration file
-// 3. Default values
-//
-// Returns a pointer to the Config struct and an error if any occurred during reading
-// from the YAML configuration file or environment variables.
-func Read(file string) (*Config, error) {
-	cfg := &Config{}
-	cfg.Cache.Capacity = defaultCapacity
-	cfg.Cache.TTL = YAMLDuration(defaultTTL)
-
-	cfgYAML, err := readFromConfigYAML(file)
-	if err != nil {
-		return nil, err
-	}
-	if cfgYAML != nil {
-		if cfgYAML.Cache.Capacity > 0 {
-			cfg.Cache.Capacity = cfgYAML.Cache.Capacity
-		}
-		if cfgYAML.Cache.TTL > 0 {
-			cfg.Cache.TTL = cfgYAML.Cache.TTL
-		}
-		if cfgYAML.Cache.Redis.Addr != "" {
-			cfg.Cache.Redis.Addr = cfgYAML.Cache.Redis.Addr
-		}
-		if cfgYAML.Cache.Redis.Username != "" {
-			cfg.Cache.Redis.Username = cfgYAML.Cache.Redis.Username
-		}
-		if cfgYAML.Cache.Redis.Password != "" {
-			cfg.Cache.Redis.Password = cfgYAML.Cache.Redis.Password
-		}
-		if cfgYAML.Cache.Redis.DB > 0 {
-			cfg.Cache.Redis.DB = cfgYAML.Cache.Redis.DB
-		}
-	}
-
-	cfgEnv, err := readFromEnvironment()
-	if err != nil {
-		return nil, err
-	}
-	if cfgEnv != nil {
-		if cfgEnv.Cache.Capacity > 0 {
-			cfg.Cache.Capacity = cfgEnv.Cache.Capacity
-		}
-		if cfgEnv.Cache.TTL > 0 {
-			cfg.Cache.TTL = cfgEnv.Cache.TTL
-		}
-		if cfgEnv.Cache.Redis.Addr != "" {
-			cfg.Cache.Redis.Addr = cfgEnv.Cache.Redis.Addr
-		}
-		if cfgEnv.Cache.Redis.Username != "" {
-			cfg.Cache.Redis.Username = cfgEnv.Cache.Redis.Username
-		}
-		if cfgEnv.Cache.Redis.Password != "" {
-			cfg.Cache.Redis.Password = cfgEnv.Cache.Redis.Password
-		}
-		if cfgEnv.Cache.Redis.DB > 0 {
-			cfg.Cache.Redis.DB = cfgEnv.Cache.Redis.DB
-		}
-	}
-
-	return cfg, nil
+	return nil
 }
