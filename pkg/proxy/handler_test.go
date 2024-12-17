@@ -32,7 +32,9 @@ func TestProxyHandler(t *testing.T) {
 	originServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Origin-Header", "ok")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Hello from origin"))
+		if _, err := w.Write([]byte("Hello from origin")); err != nil {
+			t.Fatalf("failed to write response: %v", err)
+		}
 	}))
 	defer originServer.Close()
 

@@ -149,7 +149,9 @@ func TestCache_RemoveAll(t *testing.T) {
 	}
 
 	// Remove all items from the cache
-	cache.RemoveAll(ctx)
+	if err := cache.RemoveAll(ctx); err != nil {
+		t.Errorf("expected no error, got %v", err)
+	}
 
 	// Ensure cache is empty
 	if _, found := cache.Get(ctx, "key1"); found {
