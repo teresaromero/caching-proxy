@@ -31,3 +31,12 @@ environment-clean:
 test:
 	@echo "Running tests..."
 	go test ./...
+
+lint:
+	@echo "Running linter..."
+	golangci-lint version
+	golangci-lint run
+
+compile: 
+	@echo "Compiling the Go application..."
+	go build ./...
