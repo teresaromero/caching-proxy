@@ -22,9 +22,15 @@ func main() {
 		log.Fatal("origin server URL is required")
 	}
 
-	cfg := &config.Config{}
-	config.OverrideFromConfigYAML(cfg, *configFile)
-	config.OverrideFromEnvironment(cfg)
+	cfg := config.NewConfig()
+	if err := config.OverrideFromConfigYAML(cfg, *configFile); err != nil {
+		log.Fatal(err)
+		return
+	}
+	if err := config.OverrideFromEnvironment(cfg); err != nil {
+		log.Fatal(err)
+		return
+	}
 
 	cache := cache.New(
 		&cache.CacheConfig{

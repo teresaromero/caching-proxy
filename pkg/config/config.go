@@ -37,6 +37,16 @@ type Config struct {
 	} `yaml:"cache"`
 }
 
+// NewConfig creates a new instance of Config with default cache settings.
+// It initializes the cache capacity and TTL (time-to-live) with default values.
+// Returns a pointer to the newly created Config instance.
+func NewConfig() *Config {
+	cfg := &Config{}
+	cfg.Cache.Capacity = defaultCapacity
+	cfg.Cache.TTL = YAMLDuration(defaultTTL)
+	return cfg
+}
+
 // OverrideFromConfigYAML overrides the provided configuration with values from a YAML file.
 // It reads the YAML file specified by the 'file' parameter and unmarshals its content into a temporary Config struct.
 // If the YAML file contains non-zero values for certain fields, those values will override the corresponding fields in the provided 'cfg' parameter.
