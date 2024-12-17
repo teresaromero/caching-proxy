@@ -1,5 +1,9 @@
 # Caching Proxy
 
+[![compile and test](https://github.com/teresaromero/caching-proxy/actions/workflows/compile-and-test.yml/badge.svg)](https://github.com/teresaromero/caching-proxy/actions/workflows/compile-and-test.yml)
+
+[![golangci-lint](https://github.com/teresaromero/caching-proxy/actions/workflows/golangci-lint.yml/badge.svg)](https://github.com/teresaromero/caching-proxy/actions/workflows/golangci-lint.yml)
+
 A command-line interface (CLI) tool for a caching server, built using Go. This project aims to provide a simple and efficient caching mechanism to improve the performance of web applications by reducing the load on the backend servers.
 
 Originally posted at [roadmap.sh](https://roadmap.sh/projects/caching-server)
