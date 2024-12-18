@@ -1,4 +1,4 @@
-name: compile and test
+name: compile and tests
 on:
   push:
     branches:
@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  compile-and-test:
+  compile-and-tests:
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repository
@@ -29,7 +29,10 @@ jobs:
         run: go mod download
 
       - name: Compile
-        run: go build ./...
+        run: make compile
 
       - name: Run unit tests
-        run: go test ./... -v
+        run: make unit-tests
+
+      - name: Run integration tests
+        run: make integration-test

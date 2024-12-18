@@ -9,7 +9,7 @@ include docker-redis.mk
 include docker-origin.mk
 include integration-tests.mk
 
-.PHONY: run environment environment-stop environment-clean test lint compile
+.PHONY: run environment environment-stop environment-clean unit-tests lint compile
 run:
 	@echo "Running the Go application..."
 	go run main.go --origin=$(ORIGIN_HOST):$(ORIGIN_PORT) --port=$(PORT)
@@ -29,7 +29,7 @@ environment-clean:
 	@make redis-clean
 	@make origin-clean
 
-test:
+unit-tests:
 	@echo "Running tests..."
 	go test ./...
 
