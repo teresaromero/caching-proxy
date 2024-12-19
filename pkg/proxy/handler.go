@@ -3,9 +3,12 @@ package proxy
 import (
 	"caching-proxy/pkg/cache"
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 )
 
@@ -45,14 +48,21 @@ func (p *Proxy) Handler() http.HandlerFunc {
 			return
 		}
 
-		// request to origin server
-		originURL := p.Origin + r.URL.Path
-		if r.URL.RawQuery != "" {
-			originURL += "?" + r.URL.RawQuery
+		originURL, err := parseOriginURL(p.Origin)
+		if err != nil {
+			log.Println("error: parsing origin url", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
-		log.Println("forwarding request to origin server:", originURL)
-		req, err := http.NewRequest(r.Method, originURL, io.NopCloser(r.Body))
+		// request to origin server
+		url := originURL + r.URL.Path
+		if r.URL.RawQuery != "" {
+			url += "?" + r.URL.RawQuery
+		}
+
+		log.Println("forwarding request to origin server:", url)
+		req, err := http.NewRequest(r.Method, url, io.NopCloser(r.Body))
 		req.Header = r.Header.Clone()
 		if err != nil {
 			log.Println("error: new request forward", err)
@@ -96,4 +106,22 @@ func (p *Proxy) Handler() http.HandlerFunc {
 			return
 		}
 	}
+}
+
+func parseOriginURL(origin string) (string, error) {
+	// if origin is hostname:port, add default scheme http for url.Parse recognize it as url
+	if !strings.Contains(origin, "://") && strings.Contains(origin, ":") {
+		origin = "http://" + origin
+	}
+
+	parsedOrigin, err := url.Parse(origin)
+	if err != nil {
+		return "", fmt.Errorf("invalid origin: %s", err)
+	}
+
+	if parsedOrigin.Scheme == "" {
+		parsedOrigin.Scheme = "http"
+	}
+
+	return parsedOrigin.String(), nil
 }

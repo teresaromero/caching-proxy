@@ -94,3 +94,48 @@ func TestProxyHandler(t *testing.T) {
 		})
 	}
 }
+func TestParseOriginURL(t *testing.T) {
+	tests := []struct {
+		name        string
+		origin      string
+		expectedURL string
+		expectError bool
+	}{
+		{
+			name:        "valid URL with scheme",
+			origin:      "http://example.com",
+			expectedURL: "http://example.com",
+			expectError: false,
+		},
+		{
+			name:        "valid URL without scheme",
+			origin:      "example.com",
+			expectedURL: "http://example.com",
+			expectError: false,
+		},
+		{
+			name:        "valid URL without scheme and port",
+			origin:      "example:80",
+			expectedURL: "http://example:80",
+			expectError: false,
+		},
+		{
+			name:        "invalid URL",
+			origin:      "://example.com",
+			expectedURL: "",
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := parseOriginURL(tt.origin)
+			if (err != nil) != tt.expectError {
+				t.Errorf("expected error: %v, got: %v", tt.expectError, err)
+			}
+			if result != tt.expectedURL {
+				t.Errorf("expected URL: %s, got: %s", tt.expectedURL, result)
+			}
+		})
+	}
+}
