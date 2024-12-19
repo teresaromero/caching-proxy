@@ -1,0 +1,39 @@
+networks:
+  proxy-network:
+
+volumes:
+  redis-data:
+
+services:
+  proxy:
+    build: .
+    depends_on:
+      - origin
+      - redis
+    ports:
+      - "8080:8080"
+    environment:
+      - REDIS_ADDR=redis:6379
+      - REDIS_PASSWORD=password
+    command: ["./caching-proxy", "--port", "8080", "--origin", "origin:5678"]
+    networks:
+      - proxy-network
+
+  origin:
+    image: hashicorp/http-echo
+    command: ["-text", "Hello, world!"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5678"]
+      interval: 10s
+      timeout: 2s
+      retries: 3
+    networks:
+      - proxy-network
+
+  redis:
+    image: redis
+    command: ["--requirepass", "password"]
+    networks:
+      - proxy-network
+    volumes:
+      - redis-data:/data
