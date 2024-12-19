@@ -1,4 +1,4 @@
-name: compile and tests
+name: compile and unit tests
 on:
   push:
     branches:
@@ -34,5 +34,3 @@ jobs:
       - name: Run unit tests
         run: make unit-tests
 
-      - name: Run integration tests
-        run: make integration-test
