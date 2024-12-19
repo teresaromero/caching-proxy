@@ -5,9 +5,9 @@ ORIGIN_PORT=8080
 REDIS_ADDR=127.0.0.1:6379
 REDIS_PASSWORD=password
 
-include docker-redis.mk
-include docker-origin.mk
-include integration-tests.mk
+include make/docker-redis.mk
+include make/docker-origin.mk
+include make/integration-tests.mk
 
 .PHONY: run environment environment-stop environment-clean unit-tests lint compile
 run:
