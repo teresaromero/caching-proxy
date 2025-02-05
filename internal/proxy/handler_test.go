@@ -1,7 +1,7 @@
 package proxy
 
 import (
-	"caching-proxy/pkg/cache"
+	"caching-proxy/internal/cache"
 	"context"
 	"io"
 	"net/http"

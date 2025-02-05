@@ -12,7 +12,7 @@ include make/integration-tests.mk
 .PHONY: run environment environment-stop environment-clean unit-tests lint compile
 run:
 	@echo "Running the Go application..."
-	go run main.go --origin=$(ORIGIN_HOST):$(ORIGIN_PORT) --port=$(PORT)
+	go run cmd/caching-proxy/main.go --origin=$(ORIGIN_HOST):$(ORIGIN_PORT) --port=$(PORT)
 
 environment:
 	@echo "Running redis and origin containers..."

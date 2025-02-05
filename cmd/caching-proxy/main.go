@@ -1,9 +1,9 @@
 package main
 
 import (
-	"caching-proxy/pkg/cache"
-	"caching-proxy/pkg/config"
-	"caching-proxy/pkg/proxy"
+	"caching-proxy/internal/cache"
+	"caching-proxy/internal/config"
+	"caching-proxy/internal/proxy"
 	"context"
 	"flag"
 	"log"
@@ -32,7 +32,7 @@ func main() {
 		return
 	}
 
-	cache := cache.New(
+	cacheInstance := cache.New(
 		&cache.CacheConfig{
 			TTL:           time.Duration(cfg.Cache.TTL),
 			Capacity:      cfg.Cache.Capacity,
@@ -43,7 +43,7 @@ func main() {
 		})
 
 	if *clearCache {
-		if err := cache.RemoveAll(context.Background()); err != nil {
+		if err := cacheInstance.RemoveAll(context.Background()); err != nil {
 			log.Fatal(err)
 			return
 		}
@@ -54,7 +54,7 @@ func main() {
 	proxy := proxy.Proxy{
 		Origin:     *origin,
 		HttpClient: &http.Client{},
-		Cache:      cache,
+		Cache:      cacheInstance,
 	}
 
 	log.Printf("ListenAndServe on port %s ...", *port)

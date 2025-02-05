@@ -3,7 +3,7 @@ BINARY_NAME=integration/caching-proxy
 .PHONY: integration-tests clean-integration
 integration-tests:
 	@echo "Running integration tests..."
-	@go build -o $(BINARY_NAME) . \
+	@go build -o $(BINARY_NAME) cmd/caching-proxy/main.go \
 	&& (trap '$(MAKE) clean-integration' EXIT; go test -v -tags=integration ./integration/...)
 	
 clean-integration:
